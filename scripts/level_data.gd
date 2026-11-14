@@ -19,6 +19,26 @@ const BOX_CHARS := {"r": "rubber", "s": "sticky", "v": "void"}
 
 const LEVELS := [
 	{
+		# Kitchen-sink test room, not a designed puzzle: use it to try every tile.
+		"name": "3 - Sandbox",
+		"map": [
+			"############",
+			"#@.....s...#",
+			"#..r..*****#",
+			"#.....*~~~G#",
+			"#p.^../....#",
+			"############",
+		],
+		"extras": [
+			{"kind": "lever", "pos": Vector2i(3, 0), "dir": Vector2i(0, 1), "id": 0},
+			{"kind": "wall_button", "pos": Vector2i(11, 2), "dir": Vector2i(-1, 0), "id": 0},
+			{"kind": "floor_button", "pos": Vector2i(5, 2), "id": 0},
+			{"kind": "door", "pos": Vector2i(8, 4), "id": 0},
+		],
+		"balls": {"normal": 3, "painful": 2},
+		"health": 3,
+	},
+	{
 		"name": "1 - Welcome",
 		"map": [
 			"#######",
@@ -35,36 +55,7 @@ const LEVELS := [
 			"##########",
 		],
 		"balls": {"normal": 2},
-	},
-	{
-		"name": "3 - Bridge",
-		"map": [
-			"##########",
-			"#@..r~..G#",
-			"##########",
-		],
-		"balls": {"normal": 2},
-	},
-	{
-		# Kitchen-sink test room, not a designed puzzle: use it to try every tile.
-		"name": "3 - Sandbox",
-		"map": [
-			"############",
-			"#@.....%...#",
-			"#..r..*****#",
-			"#.....*~~~G#",
-			"#..^../....#",
-			"############",
-		],
-		"extras": [
-			{"kind": "lever", "pos": Vector2i(3, 0), "dir": Vector2i(0, 1), "id": 0},
-			{"kind": "wall_button", "pos": Vector2i(11, 2), "dir": Vector2i(-1, 0), "id": 0},
-			{"kind": "floor_button", "pos": Vector2i(5, 2), "id": 0},
-			{"kind": "door", "pos": Vector2i(8, 4), "id": 0},
-		],
-		"balls": {"normal": 3, "painful": 2},
-		"health": 3,
-	},
+	}
 ]
 
 

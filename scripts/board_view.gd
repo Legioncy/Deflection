@@ -5,6 +5,8 @@ extends Node2D
 @export var tick_time := 0.15   # seconds per cell; bigger = slower
 const BALL_R := 0.16            # ball radius in cells
 
+var _ghosts: Array = []   # balls removed this tick, drawn finishing their move
+
 const TILE_SPRITES := {
 	GameState.Kind.WALL: "wall",
 	GameState.Kind.SPIKES: "spikes",
@@ -34,6 +36,15 @@ func _ready() -> void:
 func set_state(s: GameState, cell_size: int, animate := false, start_t := 0.0) -> void:
 	state = s
 	cell = cell_size
+	_ghosts.clear()
+	if animate:
+		for key in _to:
+			if key is Ball and not s.balls.has(key):
+				_ghosts.append({
+					"from": _to[key],
+					"dir": _todir.get(key, Vector2(key.dir)),
+					"kind": key.kind,
+				})
 	_from = _to
 	_fromdir = _todir
 	_to = {"player": Vector2(s.player_pos)}
@@ -116,6 +127,10 @@ func _draw() -> void:
 		_draw_box(b)
 	for ball: Ball in state.balls:
 		_draw_ball(ball)
+	for g in _ghosts:
+		var gc := _center(Vector2(g["from"]).lerp(Vector2(g["from"]) + Vector2(g["dir"]), _t))
+		if not _spr("ball_" + g["kind"], gc, cell * BALL_R * 2.0):
+			draw_circle(gc, cell * BALL_R, Ball.KINDS[g["kind"]]["color"])
 	_draw_player()
 
 
