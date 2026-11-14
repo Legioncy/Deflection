@@ -1,12 +1,36 @@
-[gd_scene format=3 uid="uid://bb43hv6kitu3x"]
+[gd_scene format=3 uid="uid://bmr87p1bp73qu"]
 
-[ext_resource type="Script" uid="uid://dmxdgvs5qwlyc" path="res://player.gd" id="1_ig7tw"]
+[ext_resource type="Script" uid="uid://pu11uvn6iwqy" path="res://scripts/main.gd" id="1_h2yge"]
+[ext_resource type="Script" uid="uid://dbikswfkcm037" path="res://scripts/board_view.gd" id="2_1bvp3"]
+[ext_resource type="Script" uid="uid://we32jpwgw1jl" path="res://scripts/hud.gd" id="3_lquwl"]
 
-[node name="Main" type="Node2D" unique_id=1391394338]
+[node name="Main" type="Node2D" unique_id=1478309388]
+script = ExtResource("1_h2yge")
 
-[node name="Player" type="CharacterBody2D" parent="." unique_id=1792611670]
-script = ExtResource("1_ig7tw")
+[node name="Board" type="Node2D" parent="." unique_id=1391817197]
+script = ExtResource("2_1bvp3")
 
-[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="Player" unique_id=1055298623]
+[node name="HUD" type="CanvasLayer" parent="." unique_id=610254763]
+script = ExtResource("3_lquwl")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Player" unique_id=1594559356]
+[node name="Margin" type="MarginContainer" parent="HUD" unique_id=1695386998]
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="VBox" type="VBoxContainer" parent="HUD/Margin" unique_id=1620939950]
+layout_mode = 2
+
+[node name="LevelLabel" type="Label" parent="HUD/Margin/VBox" unique_id=869387700]
+layout_mode = 2
+
+[node name="HealthLabel" type="Label" parent="HUD/Margin/VBox" unique_id=1194872923]
+layout_mode = 2
+
+[node name="BallsLabel" type="Label" parent="HUD/Margin/VBox" unique_id=1251443280]
+layout_mode = 2
+
+[node name="HintLabel" type="Label" parent="HUD/Margin/VBox" unique_id=1680787846]
+layout_mode = 2
+
+[node name="MessageLabel" type="Label" parent="HUD/Margin/VBox" unique_id=39060785]
+layout_mode = 2
