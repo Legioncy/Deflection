@@ -19,7 +19,7 @@ const BOX_CHARS := {"r": "rubber", "s": "sticky", "v": "void"}
 
 const LEVELS := [
 	{
-		"name": "1 - Bounce",
+		"name": "1 - Welcome",
 		"map": [
 			"#######",
 			"#@...G#",
@@ -29,6 +29,15 @@ const LEVELS := [
 	},
 	{
 		"name": "2 - Bridge",
+		"map": [
+			"##########",
+			"#@..r~..G#",
+			"##########",
+		],
+		"balls": {"normal": 2},
+	},
+	{
+		"name": "3 - Bridge",
 		"map": [
 			"##########",
 			"#@..r~..G#",

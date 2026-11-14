@@ -6,7 +6,7 @@ extends Node2D
 ##   - right after any tick in which the player moved (ball hit OR an ice slide step)
 ## so each ice step is its own undo step.
 
-const CELL := 48
+var cell := 48
 
 var busy := false
 var run_id := 0   # bumping this cancels any running auto-play
@@ -27,10 +27,21 @@ var history: Array[GameState] = []
 var dirty := false   # true if `state` has changed since the newest checkpoint
 var selected_kind := "normal"
 
+func _fit_board() -> void:
+	var avail := get_viewport_rect().size - Vector2(0, 120)   # leave room for the HUD; adjust
+	cell = int(minf(avail.x / state.width, avail.y / state.height))
+	board.position = Vector2(
+		(get_viewport_rect().size.x - state.width * cell) / 2.0,
+		60 + (avail.y - state.height * cell) / 2.0)
 
 func _ready() -> void:
 	_register_inputs()
 	_load_level(0)
+	get_viewport().size_changed.connect(func():
+		if state == null:
+			return
+		_fit_board()
+		_refresh())
 
 
 # ---------------------------------------------------------------- input
@@ -87,20 +98,23 @@ func _unhandled_input(event: InputEvent) -> void:
 
 # ---------------------------------------------------------------- turns
 func _shoot(dir: Vector2i) -> void:
+	if busy and (state.balls.size() >= 16):
+		return   # max one new ball per tick, 16 in flight
 	if state.inventory.get(selected_kind, 0) <= 0:
 		_refresh("No %s balls left" % selected_kind)
 		return
 	if not busy:
-		_checkpoint()   # one undo step per volley
+		_checkpoint()
 	state.inventory[selected_kind] -= 1
 	var b := Ball.new()
 	b.kind = selected_kind
 	b.pos = state.player_pos
 	b.dir = dir
 	state.balls.append(b)
-	if not busy:
-		_advance()      # if already running, the loop picks the new ball up next tick
-
+	if busy:
+		hud.show_state(state, LevelData.LEVELS[level_index]["name"], selected_kind, "")  # update ammo count
+	else:
+		_advance()
 
 func _wait() -> void:
 	if busy or Sim.is_idle(state):
@@ -159,7 +173,7 @@ func _load_level(index: int) -> void:
 	history.append(state.clone())
 	dirty = false
 	selected_kind = state.inventory.keys()[0]
-	board.position = (get_viewport_rect().size - Vector2(state.width, state.height) * CELL) / 2.0
+	_fit_board()
 	_refresh()
 
 
@@ -174,7 +188,7 @@ func _cycle_ball(step: int) -> void:
 	_refresh()
 
 func _refresh(note: String = "", animate := false, start_t := 0.0) -> void:
-	board.set_state(state, CELL, animate, start_t)
+	board.set_state(state, cell, animate, start_t)
 	var msg := note
 	if state.won:
 		msg = "Level complete! Press Space for the next level."
