@@ -1,4 +1,3 @@
-class_name LevelData
 extends RefCounted
 ## Levels are ASCII maps plus an optional "extras" list for tiles that need parameters.
 ##
@@ -18,15 +17,184 @@ extends RefCounted
 const BOX_CHARS := {"r": "rubber", "s": "sticky", "v": "void"}
 
 const LEVELS := [
+	
+	#Shows Movement
+	{
+		"name": "1 - Welcome",
+		"map": [
+			"#######",
+			"#.@..G#",
+			"#######",
+		],
+		"balls": {"normal": 2},
+	},
+	#Boxes bridge
+	{
+		"name": "2 - Boxes as Bridges",
+		"map": [
+			"##########",
+			"#@..r~..G#",
+			"##########",
+		],
+		"balls": {"normal": 2},
+	},
+	#Piston Power
+	{
+		"name": "3 - Pistons",
+		"map": [
+			"##########",
+			"#p..@...G#",
+			"##########",
+		],
+		"balls": {"normal": 2},
+	},
+	{
+		# Swap Balls
+		"name": "4 - The Pain Train (Swap Balls with Q and E)",
+		"map": [
+			"############",
+			"#@........G#",
+			"############",
+		],
+		"balls": {"painful": 2, "normal": 1},
+		"health": 3,
+	},
+	{
+		# Pathing
+		"name": "5 - Do try not to die",
+		"map": [
+			"######",
+			"p...G#",
+			"#.@..#",			
+			"######",
+		],
+		"balls": {"painful": 3},
+		"health": 3,
+	},
+	{
+		"name": "6 - Buttons",
+		"map": [
+			"#########",
+			"####.####",
+			"####r####",
+			"#@.....G#",
+			"#########",
+		],
+		"extras": [
+			{"kind": "floor_button", "pos": Vector2i(4, 1), "id": 0},
+			{"kind": "door", "pos": Vector2i(6, 3), "id": 0},
+		],
+		"balls": {"normal": 2},
+	},
+	{
+		# Slippy
+		"name": "7 - Chilly Floors",
+		"map": [
+			"############",
+			"#.@*******G#",
+			"############",
+		],
+		"balls": {"normal": 3},
+		"health": 3,
+	},
+	{
+		# Spikes
+		"name": "8 - Spiky",
+		"map": [
+			"############",
+			"#.........G#",
+			"#^.@.......#",
+			"############",
+		],
+		"balls": {"normal": 3},
+		"health": 3,
+	},
+	{
+		# Spikyboxes
+		"name": "9 - The box is hungry - (Pay attention to the balls)",
+		"map": [
+			"############",
+			"#@..v..~..G#",
+			"############",
+		],
+		"balls": {"normal": 4},
+		"health": 3,
+	},
+	{
+		# Introduces mirrors
+		"name": "10 - Mirrors",
+		"map": [
+			"#########",
+			"#/.r..###",
+			"#.#######",
+			"#.@....G#",
+			"#########",
+		],
+		"extras": [
+			{"kind": "floor_button", "pos": Vector2i(5, 1), "id": 0},
+			{"kind": "door", "pos": Vector2i(6, 3), "id": 0},
+		],
+		"balls": {"normal": 3},
+		"health": 3,
+	},
+	{
+		# First actual puzzle
+		"name": "11 - Roundabout",
+		"map": [
+			"#########",
+			"#./|#####",
+			"#..r#####",
+			"#..@.~.G#",
+			"#########",
+		],
+		"balls": {"normal": 3},
+		"health": 3,
+	},
+	{
+		# Wall Buttons
+		"name": "12 - Push Latch",
+		"map": [
+			"##########",
+			"#.########",
+			"#.########",
+			"#@......G#",
+			"##########",
+		],
+		"extras": [
+			{"kind": "wall_button", "pos": Vector2i(1, 0), "dir": Vector2i(0, 1), "id": 0},
+			{"kind": "door", "pos": Vector2i(7, 3), "id": 0},
+		],
+		"balls": {"normal": 3, "painful": 2},
+		"health": 3,
+	},
+	{
+		# Wall levers
+		"name": "13 - Levers can't be punched man",
+		"map": [
+			"#########",
+			"##@....G#",
+			"##.#.####",
+			"##.#.####",
+			"#^../####",
+			"#########",
+		],
+		"extras": [
+			{"kind": "lever", "pos": Vector2i(2, 5), "dir": Vector2i(0, -1), "id": 0},
+			{"kind": "door", "pos": Vector2i(6, 1), "id": 0},
+		],
+		"balls": {"normal": 2},
+		"health": 3,
+	},
+	
 	{
 		# Kitchen-sink test room, not a designed puzzle: use it to try every tile.
 		"name": "3 - Sandbox",
 		"map": [
 			"############",
-			"#@.....s...#",
+			"#@.....%...#",
 			"#..r..*****#",
 			"#.....*~~~G#",
-			"#pv^%./....#",
+			"#..^../....#",
 			"############",
 		],
 		"extras": [
@@ -37,24 +205,6 @@ const LEVELS := [
 		],
 		"balls": {"normal": 3, "painful": 2},
 		"health": 3,
-	},
-	{
-		"name": "1 - Welcome",
-		"map": [
-			"#######",
-			"#@...G#",
-			"#######",
-		],
-		"balls": {"normal": 2},
-	},
-	{
-		"name": "2 - Bridge",
-		"map": [
-			"##########",
-			"#@..r~..G#",
-			"##########",
-		],
-		"balls": {"normal": 2},
 	}
 ]
 
