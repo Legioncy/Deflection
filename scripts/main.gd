@@ -8,6 +8,9 @@ extends Node2D
 
 const CELL := 48
 
+var busy := false
+var run_id := 0   # bumping this cancels any running auto-play
+
 const SHOOT_ACTIONS := {
 	"shoot_up": Vector2i(0, -1),
 	"shoot_down": Vector2i(0, 1),
@@ -83,34 +86,49 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 # ---------------------------------------------------------------- turns
-
 func _shoot(dir: Vector2i) -> void:
 	if state.inventory.get(selected_kind, 0) <= 0:
 		_refresh("No %s balls left" % selected_kind)
 		return
-	_checkpoint()
+	if not busy:
+		_checkpoint()   # one undo step per volley
 	state.inventory[selected_kind] -= 1
 	var b := Ball.new()
 	b.kind = selected_kind
 	b.pos = state.player_pos
 	b.dir = dir
 	state.balls.append(b)
-	_advance()
+	if not busy:
+		_advance()      # if already running, the loop picks the new ball up next tick
 
 
 func _wait() -> void:
-	if Sim.is_idle(state):
+	if busy or Sim.is_idle(state):
 		return
 	_advance()
 
 
 func _advance() -> void:
-	var result: Dictionary = Sim.step(state)
-	dirty = true
-	if result["player_moved"] and not state.dead and not state.won:
-		_checkpoint()
+	run_id += 1
+	var id := run_id
+	busy = true
+	var acc := 0.0   # time carried into the current tick, so motion never stutters
+	for i in 2000:
+		var result: Dictionary = Sim.step(state)
+		dirty = true
+		if result["player_moved"] and not state.dead and not state.won:
+			_checkpoint()
+		_refresh("", true, acc / board.tick_time)
+		while acc < board.tick_time:
+			await get_tree().process_frame
+			if id != run_id:
+				return   # cancelled by undo/restart
+			acc += get_process_delta_time()
+		acc -= board.tick_time
+		if state.dead or state.won or Sim.is_idle(state):
+			break
+	busy = false
 	_refresh()
-
 
 # ---------------------------------------------------------------- undo / restart
 
@@ -121,6 +139,8 @@ func _checkpoint() -> void:
 
 
 func _undo() -> void:
+	run_id += 1
+	busy = false
 	# If nothing changed since the newest checkpoint, that checkpoint IS the current state,
 	# so drop it and go back one more.
 	if not dirty and history.size() > 1:
@@ -131,6 +151,8 @@ func _undo() -> void:
 
 
 func _load_level(index: int) -> void:
+	run_id += 1
+	busy = false
 	level_index = index % LevelData.LEVELS.size()
 	state = LevelData.build(level_index)
 	history.clear()
@@ -151,9 +173,8 @@ func _cycle_ball(step: int) -> void:
 	selected_kind = kinds[(i + step + kinds.size()) % kinds.size()]
 	_refresh()
 
-
-func _refresh(note: String = "") -> void:
-	board.set_state(state, CELL)
+func _refresh(note: String = "", animate := false, start_t := 0.0) -> void:
+	board.set_state(state, CELL, animate, start_t)
 	var msg := note
 	if state.won:
 		msg = "Level complete! Press Space for the next level."

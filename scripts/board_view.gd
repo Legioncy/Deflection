@@ -1,17 +1,108 @@
 class_name BoardView
 extends Node2D
-## Draws a GameState with simple shapes, so the game runs with zero art assets.
-## Swap the _draw_* helpers for Sprite2D / TileMapLayer rendering later; the logic never touches this.
+## Draws a GameState. Uses res://art/<name>.png when present, otherwise simple shapes.
+
+@export var tick_time := 0.15   # seconds per cell; bigger = slower
+const BALL_R := 0.16            # ball radius in cells
+
+const TILE_SPRITES := {
+	GameState.Kind.WALL: "wall",
+	GameState.Kind.SPIKES: "spikes",
+	GameState.Kind.PISTON: "piston",
+	GameState.Kind.SPLITTER: "splitter",
+	GameState.Kind.GOAL: "goal",
+	GameState.Kind.MIRROR_SLASH: "mirror_slash",
+	GameState.Kind.MIRROR_BACK: "mirror_back",
+}
 
 var state: GameState
 var cell := 48
 
+var _from := {}
+var _to := {}
+var _fromdir := {}
+var _todir := {}
+var _t := 1.0
 
-func set_state(s: GameState, cell_size: int) -> void:
+
+func _ready() -> void:
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+
+
+# ---------------------------------------------------------------- state / animation
+
+func set_state(s: GameState, cell_size: int, animate := false, start_t := 0.0) -> void:
 	state = s
 	cell = cell_size
+	_from = _to
+	_fromdir = _todir
+	_to = {"player": Vector2(s.player_pos)}
+	_todir = {}
+	for b: Box in s.boxes:
+		_to[b] = Vector2(b.pos)
+	for ball: Ball in s.balls:
+		_to[ball] = Vector2(ball.pos)
+		_todir[ball] = Vector2(ball.dir)
+		# Freshly shot ball: start on the player instead of popping in one cell away
+		if animate and not _from.has(ball):
+			var origin := Vector2(ball.pos - ball.dir)
+			if origin == _from.get("player", Vector2(-1, -1)):
+				_from[ball] = origin
+				_fromdir[ball] = Vector2(ball.dir)
+	if animate:
+		_t = start_t
+	else:
+		_t = 1.0
+		_from = _to
+		_fromdir = _todir
 	queue_redraw()
 
+
+func _process(delta: float) -> void:
+	if _t < 1.0:
+		_t = minf(1.0, _t + delta / tick_time)
+		queue_redraw()
+
+func _vp(key: Variant) -> Vector2:
+	if not _to.has(key):
+		return Vector2(key.pos) if key is Object else Vector2.ZERO
+	var to: Vector2 = _to[key]
+	return Vector2(_from.get(key, to)).lerp(to, _t)
+
+
+## A bounce in place is drawn as: travel out to touch the wall, come back.
+func _ball_vp(ball: Ball) -> Vector2:
+	if not _to.has(ball):
+		return Vector2(ball.pos)   # just shot, sits on the player until the next tick
+	var to: Vector2 = _to[ball]
+	var from: Vector2 = _from.get(ball, to)
+	var fd: Vector2 = _fromdir.get(ball, Vector2(ball.dir))
+	if from == to and fd == -Vector2(ball.dir):
+		var reach := 0.5 - BALL_R
+		return to + fd * reach * (1.0 - absf(2.0 * _t - 1.0))
+	return from.lerp(to, _t)
+
+func _center(v: Vector2) -> Vector2:
+	return (v + Vector2(0.5, 0.5)) * cell
+
+
+func _cell_rect(p: Vector2i) -> Rect2:
+	return Rect2(Vector2(p) * cell, Vector2(cell, cell))
+
+
+# ---------------------------------------------------------------- sprites
+
+func _spr(sprite_name: String, center: Vector2, size: float, rot := 0.0) -> bool:
+	var tex := Sprites.tex(sprite_name)
+	if tex == null:
+		return false
+	draw_set_transform(center, rot)
+	draw_texture_rect(tex, Rect2(Vector2(-size, -size) / 2.0, Vector2(size, size)), false)
+	draw_set_transform(Vector2.ZERO, 0.0)
+	return true
+
+
+# ---------------------------------------------------------------- drawing
 
 func _draw() -> void:
 	if state == null:
@@ -28,10 +119,6 @@ func _draw() -> void:
 	_draw_player()
 
 
-func _cell_rect(p: Vector2i) -> Rect2:
-	return Rect2(Vector2(p) * cell, Vector2(cell, cell))
-
-
 func _label(r: Rect2, text: String) -> void:
 	draw_string(ThemeDB.fallback_font, r.position + Vector2(0, cell * 0.66), text,
 		HORIZONTAL_ALIGNMENT_CENTER, cell, 22, Color.WHITE)
@@ -39,6 +126,12 @@ func _label(r: Rect2, text: String) -> void:
 
 func _draw_floor(p: Vector2i) -> void:
 	var r := _cell_rect(p)
+	var sprite_name: String = {
+		GameState.Floor.WATER: "water",
+		GameState.Floor.ICE: "ice",
+	}.get(state.floor_at(p), "floor")
+	if _spr(sprite_name, r.get_center(), cell):
+		return
 	var color := Color(0.16, 0.18, 0.22)
 	match state.floor_at(p):
 		GameState.Floor.WATER:
@@ -52,6 +145,25 @@ func _draw_floor(p: Vector2i) -> void:
 func _draw_tile(p: Vector2i, t: TileInfo) -> void:
 	var r := _cell_rect(p)
 	var c := r.get_center()
+
+	# sprite path
+	match t.kind:
+		GameState.Kind.FLOOR_BUTTON:
+			if _spr("floor_button_on" if state.held.get(t.id, false) else "floor_button", c, cell):
+				return
+		GameState.Kind.DOOR:
+			if _spr("door_open" if state.is_open(t.id) else "door_closed", c, cell):
+				return
+		GameState.Kind.WALL_BUTTON, GameState.Kind.LEVER:
+			var base := "wall_button" if t.kind == GameState.Kind.WALL_BUTTON else "lever"
+			var is_on: bool = state.toggled.get(t.id, false)
+			if _spr(base + ("_on" if is_on else ""), c, cell, Vector2(t.dir).angle() + PI / 2.0):
+				return
+		_:
+			if TILE_SPRITES.has(t.kind) and _spr(TILE_SPRITES[t.kind], c, cell):
+				return
+
+	# shape fallback
 	var wall_color := Color(0.30, 0.30, 0.35)
 	match t.kind:
 		GameState.Kind.WALL:
@@ -109,22 +221,26 @@ func _draw_tile(p: Vector2i, t: TileInfo) -> void:
 
 
 func _draw_box(b: Box) -> void:
+	if _spr("box_" + b.kind, _center(_vp(b)), cell - 4):
+		return
 	var col: Color = Box.KINDS[b.kind]["color"]
-	var r := _cell_rect(b.pos).grow(-6)
+	var r := Rect2(_vp(b) * cell, Vector2(cell, cell)).grow(-6)
 	draw_rect(r, col)
 	draw_rect(r, Color(0, 0, 0, 0.5), false, 2.0)
 
 
 func _draw_ball(ball: Ball) -> void:
-	var col: Color = Ball.KINDS[ball.kind]["color"]
-	var c := _cell_rect(ball.pos).get_center()
-	draw_circle(c, cell * 0.16, col)
-	draw_line(c, c + Vector2(ball.dir) * cell * 0.30, col, 2.0)
+	var c := _center(_ball_vp(ball))
+	if not _spr("ball_" + ball.kind, c, cell * BALL_R * 2.0):
+		var col: Color = Ball.KINDS[ball.kind]["color"]
+		draw_circle(c, cell * BALL_R, col)
 	if ball.power > 1:
 		draw_arc(c, cell * 0.22, 0.0, TAU, 16, Color.ORANGE, 2.0)
 
 
 func _draw_player() -> void:
-	var c := _cell_rect(state.player_pos).get_center()
+	var c := _center(_vp("player"))
+	if _spr("player_dead" if state.dead else "player", c, cell - 4):
+		return
 	draw_circle(c, cell * 0.32, Color(0.85, 0.2, 0.2) if state.dead else Color(0.25, 0.55, 0.95))
 	draw_arc(c, cell * 0.32, 0.0, TAU, 24, Color.WHITE, 2.0)
